@@ -7,7 +7,7 @@
 import re
 
 from typing import List, Any
-from .base_client import BaseClient, Device, DeviceTypes, ActionNotSupported, PropertyIDs, Group
+from .base_client import BaseClient, Device, DeviceTypes, ActionNotSupported, PropertyIDs, Group, EventTypes
 
 
 class File:
@@ -179,6 +179,28 @@ class Client:
         else:
             raise ActionNotSupported(device_type.value)
 
+    def notifications_on(self, device: Device, notification: PropertyIDs):
+        if DeviceTypes(device.product_type) not in [
+            DeviceTypes.CAMERA
+        ]:
+            raise ActionNotSupported(device.product_type)
+
+        plist = [
+            self.create_pid_pair(notification, "1")
+        ]
+        self.client.set_property_list(device, plist)
+
+    def notifications_off(self, device: Device, notification: PropertyIDs):
+        if DeviceTypes(device.product_type) not in [
+            DeviceTypes.CAMERA
+        ]:
+            raise ActionNotSupported(device.product_type)
+
+        plist = [
+            self.create_pid_pair(notification, "0")
+        ]
+        self.client.set_property_list(device, plist)
+
     def set_brightness(self, device: Device, brightness: int):
         if DeviceTypes(device.product_type) not in [
             DeviceTypes.LIGHT,
@@ -222,8 +244,8 @@ class Client:
 
         return property_list
 
-    def get_events(self, device):
-        raw_events = self.client.get_event_list(device, 10)['data']['event_list']
+    def get_events(self, device, requested_event_type: EventTypes = EventTypes.MOTION):
+        raw_events = self.client.get_event_list(device, 10, requested_event_type)
 
         events = []
         if len(raw_events) > 0:
@@ -233,9 +255,8 @@ class Client:
 
         return events
 
-    def get_latest_event(self, device):
-        raw_events = self.client.get_event_list(device, 10)['data']['event_list']
-
+    def get_latest_event(self, device, requested_event_type: EventTypes = EventTypes.MOTION):
+        raw_events = self.client.get_event_list(device, 10, requested_event_type)
         if len(raw_events) > 0:
             return Event(raw_events[0])
 
